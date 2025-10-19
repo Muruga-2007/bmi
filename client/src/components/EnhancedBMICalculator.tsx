@@ -236,6 +236,8 @@ export default function EnhancedBMICalculator({ onCalculate }: EnhancedBMICalcul
               bmiCategory={previewBMI}
               height={formData.height}
               weight={formData.weight}
+              gender={formData.gender as 'male' | 'female' | 'other'}
+              activityLevel={formData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'}
             />
           </div>
           <CardContent className="p-4 bg-gradient-to-t from-background to-transparent">

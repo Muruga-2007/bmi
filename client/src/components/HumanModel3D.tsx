@@ -5,9 +5,17 @@ type HumanModel3DProps = {
   bmiCategory?: 'underweight' | 'normal' | 'overweight' | 'obese';
   height?: number;
   weight?: number;
+  gender?: 'male' | 'female' | 'other';
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active';
 };
 
-export default function HumanModel3D({ bmiCategory = 'normal', height = 170, weight = 70 }: HumanModel3DProps) {
+export default function HumanModel3D({ 
+  bmiCategory = 'normal', 
+  height = 170, 
+  weight = 70,
+  gender = 'male',
+  activityLevel = 'moderate'
+}: HumanModel3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -49,7 +57,7 @@ export default function HumanModel3D({ bmiCategory = 'normal', height = 170, wei
     pointLight.position.set(-5, 5, 5);
     scene.add(pointLight);
 
-    const model = createHumanModel(bmiCategory, height, weight);
+    const model = createHumanModel(bmiCategory, height, weight, gender, activityLevel);
     scene.add(model);
     modelRef.current = model;
 
@@ -104,11 +112,11 @@ export default function HumanModel3D({ bmiCategory = 'normal', height = 170, wei
         }
       });
       
-      const newModel = createHumanModel(bmiCategory, height, weight);
+      const newModel = createHumanModel(bmiCategory, height, weight, gender, activityLevel);
       sceneRef.current.add(newModel);
       modelRef.current = newModel;
     }
-  }, [bmiCategory, height, weight]);
+  }, [bmiCategory, height, weight, gender, activityLevel]);
 
   const handleMouseDown = () => {
     isRotatingRef.current = false;
@@ -145,9 +153,84 @@ export default function HumanModel3D({ bmiCategory = 'normal', height = 170, wei
   );
 }
 
-function createHumanModel(category: string, height: number, weight: number): THREE.Group {
+function createHumanModel(
+  category: string, 
+  height: number, 
+  weight: number, 
+  gender: string, 
+  activityLevel: string
+): THREE.Group {
   const group = new THREE.Group();
   
+  // Gender-based body proportions
+  const genderConfigs = {
+    male: {
+      shoulderWidth: 1.3,
+      hipWidth: 0.88,
+      waistWidth: 0.95,
+      torsoTaper: 1.0,
+      chestDepth: 1.05,
+      breastSize: 0,
+      pelvisWidth: 0.85,
+      shoulderHeight: 0
+    },
+    female: {
+      shoulderWidth: 0.9,
+      hipWidth: 1.3,
+      waistWidth: 0.7,
+      torsoTaper: 0.75,
+      chestDepth: 0.85,
+      breastSize: 0.18,
+      pelvisWidth: 1.2,
+      shoulderHeight: -0.05
+    },
+    other: {
+      shoulderWidth: 1.1,
+      hipWidth: 1.05,
+      waistWidth: 0.82,
+      torsoTaper: 0.88,
+      chestDepth: 0.95,
+      breastSize: 0.08,
+      pelvisWidth: 1.0,
+      shoulderHeight: 0
+    }
+  };
+  
+  // Activity level affects muscle definition and body fat
+  const activityConfigs = {
+    sedentary: {
+      muscleDefinition: 0.75,
+      bodyFat: 1.25,
+      muscleScale: 0.88,
+      definitionIntensity: 0.08
+    },
+    light: {
+      muscleDefinition: 0.88,
+      bodyFat: 1.12,
+      muscleScale: 0.95,
+      definitionIntensity: 0.11
+    },
+    moderate: {
+      muscleDefinition: 1.0,
+      bodyFat: 1.0,
+      muscleScale: 1.0,
+      definitionIntensity: 0.15
+    },
+    active: {
+      muscleDefinition: 1.15,
+      bodyFat: 0.9,
+      muscleScale: 1.12,
+      definitionIntensity: 0.2
+    },
+    'very-active': {
+      muscleDefinition: 1.3,
+      bodyFat: 0.82,
+      muscleScale: 1.22,
+      definitionIntensity: 0.25
+    }
+  };
+  
+  // BMI category configurations
   const categoryMap = {
     underweight: { bodyScale: 0.75, muscleScale: 0.7, torsoWidth: 0.85, waistScale: 0.7, hipScale: 0.75, accentColor: 0x4facfe },
     normal: { bodyScale: 1.0, muscleScale: 1.0, torsoWidth: 1.0, waistScale: 0.85, hipScale: 1.0, accentColor: 0x00f2c3 },
@@ -155,7 +238,23 @@ function createHumanModel(category: string, height: number, weight: number): THR
     obese: { bodyScale: 1.5, muscleScale: 1.35, torsoWidth: 1.6, waistScale: 1.6, hipScale: 1.6, accentColor: 0xff6b9d }
   };
   
-  const config = categoryMap[category as keyof typeof categoryMap] || categoryMap.normal;
+  const genderConfig = genderConfigs[gender as keyof typeof genderConfigs] || genderConfigs.male;
+  const activityConfig = activityConfigs[activityLevel as keyof typeof activityConfigs] || activityConfigs.moderate;
+  const bmiConfig = categoryMap[category as keyof typeof categoryMap] || categoryMap.normal;
+  
+  // Combine all configurations for final body composition
+  const config = {
+    ...bmiConfig,
+    muscleScale: bmiConfig.muscleScale * activityConfig.muscleScale,
+    waistScale: bmiConfig.waistScale * activityConfig.bodyFat,
+    hipScale: bmiConfig.hipScale * genderConfig.hipWidth,
+    torsoWidth: bmiConfig.torsoWidth * genderConfig.shoulderWidth,
+    definitionIntensity: activityConfig.definitionIntensity,
+    breastSize: genderConfig.breastSize,
+    pelvisWidth: genderConfig.pelvisWidth,
+    shoulderHeight: genderConfig.shoulderHeight,
+    chestDepth: genderConfig.chestDepth
+  };
   
   // More realistic skin tone with subtle variation
   const skinTone = 0xf5d5c5;
@@ -173,7 +272,7 @@ function createHumanModel(category: string, height: number, weight: number): THR
     metalness: 0.1,
     roughness: 0.85,
     emissive: config.accentColor,
-    emissiveIntensity: 0.15
+    emissiveIntensity: config.definitionIntensity
   });
 
   const hairMaterial = new THREE.MeshStandardMaterial({
@@ -341,7 +440,7 @@ function createHumanModel(category: string, height: number, weight: number): THR
   upperChest.position.y = 1.75;
   group.add(upperChest);
 
-  // Chest/Torso - more anatomical shape
+  // Chest/Torso - more anatomical shape with gender-specific depth
   const chestGeometry = new THREE.CylinderGeometry(
     0.35 * config.torsoWidth,
     0.4 * config.waistScale,
@@ -350,23 +449,45 @@ function createHumanModel(category: string, height: number, weight: number): THR
   );
   const chest = new THREE.Mesh(chestGeometry, skinMaterial);
   chest.position.y = 1.3;
-  chest.scale.z = 0.6;
+  chest.scale.z = 0.6 * config.chestDepth;
   group.add(chest);
 
-  // Pectoral/breast area detail
-  const pectoralLeft = new THREE.Mesh(
-    new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
-    highlightMaterial
-  );
-  pectoralLeft.position.set(-0.15 * config.torsoWidth, 1.5, 0.12);
-  pectoralLeft.scale.z = 0.6;
-  const pectoralRight = new THREE.Mesh(
-    new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
-    highlightMaterial
-  );
-  pectoralRight.position.set(0.15 * config.torsoWidth, 1.5, 0.12);
-  pectoralRight.scale.z = 0.6;
-  group.add(pectoralLeft, pectoralRight);
+  // Pectoral/breast area detail - gender-specific
+  if (config.breastSize > 0) {
+    // Female breast geometry
+    const breastLeft = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12 + (config.breastSize * 0.08), 20, 20),
+      skinMaterial
+    );
+    breastLeft.position.set(-0.13 * config.torsoWidth, 1.48, 0.16);
+    breastLeft.scale.set(0.95, 1.1, 1.3);
+    
+    const breastRight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12 + (config.breastSize * 0.08), 20, 20),
+      skinMaterial
+    );
+    breastRight.position.set(0.13 * config.torsoWidth, 1.48, 0.16);
+    breastRight.scale.set(0.95, 1.1, 1.3);
+    
+    group.add(breastLeft, breastRight);
+  } else {
+    // Male pectoral muscles
+    const pectoralLeft = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
+      highlightMaterial
+    );
+    pectoralLeft.position.set(-0.15 * config.torsoWidth, 1.5, 0.12);
+    pectoralLeft.scale.z = 0.6;
+    
+    const pectoralRight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
+      highlightMaterial
+    );
+    pectoralRight.position.set(0.15 * config.torsoWidth, 1.5, 0.12);
+    pectoralRight.scale.z = 0.6;
+    
+    group.add(pectoralLeft, pectoralRight);
+  }
 
   // Abdomen with realistic curvature
   const abdomenGeometry = new THREE.SphereGeometry(0.38 * config.waistScale, 32, 32);
@@ -389,31 +510,31 @@ function createHumanModel(category: string, height: number, weight: number): THR
   waist.scale.z = 0.7;
   group.add(waist);
 
-  // Hips with more realistic shape
+  // Hips with more realistic shape - gender-specific pelvis width
   const hips = new THREE.Mesh(
     new THREE.SphereGeometry(0.42 * config.hipScale, 32, 16),
     skinMaterial
   );
-  hips.scale.set(1.1, 0.55, 0.9);
+  hips.scale.set(1.1 * config.pelvisWidth, 0.55, 0.9);
   hips.position.y = 0.15;
   group.add(hips);
   
-  // Gluteus (buttocks) for realistic back view
+  // Gluteus (buttocks) for realistic back view - more pronounced for females
   const glutes = new THREE.Mesh(
     new THREE.SphereGeometry(0.22 * config.hipScale, 24, 16),
     skinMaterial
   );
-  glutes.scale.set(0.8, 0.9, 1.2);
+  glutes.scale.set(0.8 * config.pelvisWidth, 0.9, 1.2 + (config.breastSize * 0.3));
   glutes.position.set(0, 0.1, -0.15);
   group.add(glutes);
 
-  // Shoulders with more definition
+  // Shoulders with more definition - gender-specific positioning and size
   const createShoulder = (posX: number) => {
     const shoulder = new THREE.Mesh(
       new THREE.SphereGeometry(0.18 * config.muscleScale, 16, 16),
       highlightMaterial
     );
-    shoulder.position.set(posX, 1.65, 0);
+    shoulder.position.set(posX, 1.65 + config.shoulderHeight, 0);
     return shoulder;
   };
   
