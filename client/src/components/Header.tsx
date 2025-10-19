@@ -10,6 +10,7 @@ export default function Header() {
   const navItems = [
     { path: "/", label: "Home" },
     { path: "/calculator", label: "Calculator" },
+    { path: "/diet-plan", label: "Diet Plans" },
     { path: "/insights", label: "Insights" },
     { path: "/about", label: "About" },
   ];

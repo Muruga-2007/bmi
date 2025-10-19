@@ -1,8 +1,11 @@
 import { useState } from "react";
-import BMICalculator from "@/components/BMICalculator";
+import { useLocation } from "wouter";
+import EnhancedBMICalculator from "@/components/EnhancedBMICalculator";
 import BMIResults from "@/components/BMIResults";
 import BMIChart from "@/components/BMIChart";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Utensils, ArrowRight } from "lucide-react";
 
 type BMIData = {
   bmi: number;
@@ -13,6 +16,7 @@ type BMIData = {
 
 export default function Calculator() {
   const [results, setResults] = useState<BMIData | null>(null);
+  const [, setLocation] = useLocation();
 
   const calculateBMI = (data: any) => {
     const heightInMeters = data.height / 100;
@@ -71,15 +75,15 @@ export default function Calculator() {
         className="mb-12 text-center"
       >
         <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-          BMI Calculator
+          BMI Calculator with 3D Visualization
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Get instant insights into your body mass index with AI-powered health recommendations
+          Experience real-time body analysis with interactive 3D model and personalized health insights
         </p>
       </motion.div>
 
       <div className="space-y-8">
-        <BMICalculator onCalculate={calculateBMI} />
+        <EnhancedBMICalculator onCalculate={calculateBMI} />
         
         {results && (
           <motion.div
@@ -94,6 +98,19 @@ export default function Calculator() {
               aiTips={results.aiTips}
             />
             <BMIChart userBMI={results.bmi} />
+            
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setLocation("/diet-plan")}
+                size="lg"
+                className="gap-2 bg-gradient-to-r from-primary to-chart-2"
+                data-testid="button-view-diet-plan"
+              >
+                <Utensils className="h-5 w-5" />
+                View Detailed Diet Plans
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
           </motion.div>
         )}
       </div>
