@@ -149,63 +149,179 @@ function createHumanModel(category: string, height: number, weight: number): THR
   const group = new THREE.Group();
   
   const categoryMap = {
-    underweight: { bodyScale: 0.75, muscleScale: 0.7, torsoWidth: 0.85, waistScale: 0.7, accentColor: 0x4facfe },
-    normal: { bodyScale: 1.0, muscleScale: 1.0, torsoWidth: 1.0, waistScale: 0.85, accentColor: 0x00f2c3 },
-    overweight: { bodyScale: 1.25, muscleScale: 1.15, torsoWidth: 1.3, waistScale: 1.25, accentColor: 0xffd93d },
-    obese: { bodyScale: 1.5, muscleScale: 1.35, torsoWidth: 1.6, waistScale: 1.6, accentColor: 0xff6b9d }
+    underweight: { bodyScale: 0.75, muscleScale: 0.7, torsoWidth: 0.85, waistScale: 0.7, hipScale: 0.75, accentColor: 0x4facfe },
+    normal: { bodyScale: 1.0, muscleScale: 1.0, torsoWidth: 1.0, waistScale: 0.85, hipScale: 1.0, accentColor: 0x00f2c3 },
+    overweight: { bodyScale: 1.25, muscleScale: 1.15, torsoWidth: 1.3, waistScale: 1.25, hipScale: 1.3, accentColor: 0xffd93d },
+    obese: { bodyScale: 1.5, muscleScale: 1.35, torsoWidth: 1.6, waistScale: 1.6, hipScale: 1.6, accentColor: 0xff6b9d }
   };
   
   const config = categoryMap[category as keyof typeof categoryMap] || categoryMap.normal;
   
-  // Realistic skin tones based on category
-  const skinTone = 0xf4c2a5;
+  // More realistic skin tone with subtle variation
+  const skinTone = 0xf5d5c5;
   
   const skinMaterial = new THREE.MeshStandardMaterial({
     color: skinTone,
+    metalness: 0.05,
+    roughness: 0.9,
+    emissive: config.accentColor,
+    emissiveIntensity: 0.1
+  });
+
+  const highlightMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(skinTone).multiplyScalar(0.95),
     metalness: 0.1,
-    roughness: 0.8,
+    roughness: 0.85,
     emissive: config.accentColor,
     emissiveIntensity: 0.15
   });
 
-  const highlightMaterial = new THREE.MeshStandardMaterial({
-    color: skinTone,
-    metalness: 0.2,
-    roughness: 0.7,
-    emissive: config.accentColor,
-    emissiveIntensity: 0.25
+  const hairMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3d2817,
+    metalness: 0.3,
+    roughness: 0.6
   });
 
-  // Head with more realistic shape
-  const headGeometry = new THREE.SphereGeometry(0.35, 32, 32);
-  headGeometry.scale(1, 1.15, 0.95); // Make head slightly oval
+  // More realistic head with proper proportions
+  const headGeometry = new THREE.SphereGeometry(0.38, 32, 32);
+  headGeometry.scale(1, 1.2, 1); // More natural head shape
   const head = new THREE.Mesh(headGeometry, skinMaterial);
-  head.position.y = 2.3;
+  head.position.y = 2.35;
   group.add(head);
+
+  // Hair - realistic hairstyle
+  const hairGeometry = new THREE.SphereGeometry(0.39, 32, 32);
+  hairGeometry.scale(1, 0.9, 1);
+  const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+  hair.position.copy(head.position);
+  hair.position.y += 0.1;
+  group.add(hair);
+
+  // Ears
+  const createEar = (posX: number) => {
+    const earGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+    earGeometry.scale(0.5, 1, 0.3);
+    const ear = new THREE.Mesh(earGeometry, skinMaterial);
+    ear.position.set(posX, 2.35, 0);
+    return ear;
+  };
+  group.add(createEar(-0.35), createEar(0.35));
 
   // Facial features
   const faceGroup = new THREE.Group();
   faceGroup.position.copy(head.position);
   
-  // Eyes
-  const eyeMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x2c3e50,
-    metalness: 0.9,
+  // Eye sockets and eyes with more detail
+  const eyeWhiteMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xffffff,
+    metalness: 0.1,
+    roughness: 0.5
+  });
+  const irisMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x4a6fa5,
+    metalness: 0.8,
+    roughness: 0.2
+  });
+  const pupilMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x000000,
+    metalness: 1.0,
     roughness: 0.1
   });
-  const eyeGeometry = new THREE.SphereGeometry(0.05, 16, 16);
-  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  leftEye.position.set(-0.12, 0.08, 0.3);
-  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  rightEye.position.set(0.12, 0.08, 0.3);
-  faceGroup.add(leftEye, rightEye);
+
+  const createEye = (posX: number) => {
+    const eyeGroup = new THREE.Group();
+    
+    // Eye white
+    const eyeWhite = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 16, 16),
+      eyeWhiteMaterial
+    );
+    eyeWhite.scale.z = 0.5;
+    
+    // Iris
+    const iris = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 16, 16),
+      irisMaterial
+    );
+    iris.position.z = 0.04;
+    
+    // Pupil
+    const pupil = new THREE.Mesh(
+      new THREE.SphereGeometry(0.018, 12, 12),
+      pupilMaterial
+    );
+    pupil.position.z = 0.05;
+    
+    eyeGroup.add(eyeWhite, iris, pupil);
+    eyeGroup.position.set(posX, 0.1, 0.32);
+    return eyeGroup;
+  };
   
-  // Nose
-  const noseGeometry = new THREE.ConeGeometry(0.04, 0.12, 8);
-  const nose = new THREE.Mesh(noseGeometry, skinMaterial);
-  nose.position.set(0, -0.02, 0.32);
-  nose.rotation.x = Math.PI / 2;
-  faceGroup.add(nose);
+  faceGroup.add(createEye(-0.13), createEye(0.13));
+  
+  // Nose with realistic structure
+  const noseBridge = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.15, 0.05),
+    skinMaterial
+  );
+  noseBridge.position.set(0, 0.02, 0.34);
+  faceGroup.add(noseBridge);
+  
+  const noseTip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.055, 16, 16),
+    skinMaterial
+  );
+  noseTip.position.set(0, -0.06, 0.36);
+  noseTip.scale.set(0.8, 0.7, 1);
+  faceGroup.add(noseTip);
+  
+  // Nostrils
+  const createNostril = (posX: number) => {
+    const nostril = new THREE.Mesh(
+      new THREE.SphereGeometry(0.02, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0x2c1810, metalness: 0, roughness: 1 })
+    );
+    nostril.position.set(posX, -0.08, 0.35);
+    nostril.scale.set(0.7, 0.5, 0.5);
+    return nostril;
+  };
+  faceGroup.add(createNostril(-0.03), createNostril(0.03));
+  
+  // Mouth
+  const mouthGeometry = new THREE.BoxGeometry(0.15, 0.02, 0.02);
+  const mouth = new THREE.Mesh(
+    mouthGeometry,
+    new THREE.MeshStandardMaterial({ color: 0xc97d7d, metalness: 0.2, roughness: 0.8 })
+  );
+  mouth.position.set(0, -0.18, 0.33);
+  faceGroup.add(mouth);
+  
+  // Lips
+  const upperLip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.025, 0.03),
+    new THREE.MeshStandardMaterial({ color: 0xd99999, metalness: 0.1, roughness: 0.7 })
+  );
+  upperLip.position.set(0, -0.17, 0.33);
+  faceGroup.add(upperLip);
+  
+  const lowerLip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.03, 0.03),
+    new THREE.MeshStandardMaterial({ color: 0xd99999, metalness: 0.1, roughness: 0.7 })
+  );
+  lowerLip.position.set(0, -0.195, 0.33);
+  faceGroup.add(lowerLip);
+  
+  // Eyebrows
+  const createEyebrow = (posX: number) => {
+    const eyebrow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.02, 0.01),
+      hairMaterial
+    );
+    eyebrow.position.set(posX, 0.2, 0.33);
+    eyebrow.rotation.z = posX > 0 ? -0.1 : 0.1;
+    return eyebrow;
+  };
+  faceGroup.add(createEyebrow(-0.13), createEyebrow(0.13));
   
   group.add(faceGroup);
 
@@ -273,14 +389,23 @@ function createHumanModel(category: string, height: number, weight: number): THR
   waist.scale.z = 0.7;
   group.add(waist);
 
-  // Hips
+  // Hips with more realistic shape
   const hips = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4 * config.bodyScale, 32, 16),
+    new THREE.SphereGeometry(0.42 * config.hipScale, 32, 16),
     skinMaterial
   );
-  hips.scale.set(1, 0.5, 0.8);
-  hips.position.y = 0.2;
+  hips.scale.set(1.1, 0.55, 0.9);
+  hips.position.y = 0.15;
   group.add(hips);
+  
+  // Gluteus (buttocks) for realistic back view
+  const glutes = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22 * config.hipScale, 24, 16),
+    skinMaterial
+  );
+  glutes.scale.set(0.8, 0.9, 1.2);
+  glutes.position.set(0, 0.1, -0.15);
+  group.add(glutes);
 
   // Shoulders with more definition
   const createShoulder = (posX: number) => {
@@ -321,14 +446,33 @@ function createHumanModel(category: string, height: number, weight: number): THR
     );
     forearm.position.set(posX, 0.75, 0);
     
-    // Hand
-    const hand = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12 * config.muscleScale, 0.18, 0.08),
+    // Hand with palm
+    const palm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.11 * config.muscleScale, 0.14, 0.06),
       skinMaterial
     );
-    hand.position.set(posX, 0.42, 0);
+    palm.position.set(posX, 0.43, 0);
     
-    armGroup.add(upperArm, elbow, forearm, hand);
+    // Fingers
+    const fingerMaterial = skinMaterial;
+    const createFinger = (offsetX: number, offsetY: number, length: number) => {
+      const finger = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012 * config.muscleScale, 0.01 * config.muscleScale, length, 8),
+        fingerMaterial
+      );
+      finger.position.set(posX + offsetX, 0.35 + offsetY, 0);
+      return finger;
+    };
+    
+    const fingers = [
+      createFinger(-0.04, 0, 0.08),  // Index
+      createFinger(-0.02, 0.01, 0.09), // Middle
+      createFinger(0.01, 0, 0.08),   // Ring
+      createFinger(0.03, -0.01, 0.07), // Pinky
+      createFinger(-0.06, 0.04, 0.06)  // Thumb (positioned differently)
+    ];
+    
+    armGroup.add(upperArm, elbow, forearm, palm, ...fingers);
     return armGroup;
   };
 
@@ -368,14 +512,30 @@ function createHumanModel(category: string, height: number, weight: number): THR
     );
     ankle.position.set(posX, -1.35, 0);
     
-    // Foot
-    const foot = new THREE.Mesh(
-      new THREE.BoxGeometry(0.12 * config.bodyScale, 0.08, 0.25),
+    // More realistic foot
+    const footBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13 * config.bodyScale, 0.07, 0.22),
       skinMaterial
     );
-    foot.position.set(posX, -1.45, 0.08);
+    footBase.position.set(posX, -1.46, 0.09);
     
-    legGroup.add(thigh, knee, calf, ankle, foot);
+    // Toes
+    const toesGroup = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+      const toe = new THREE.Mesh(
+        new THREE.SphereGeometry(0.015 * config.bodyScale, 8, 8),
+        skinMaterial
+      );
+      toe.scale.set(1, 0.6, 1.2);
+      toe.position.set(
+        posX - 0.04 * config.bodyScale + (i * 0.02 * config.bodyScale),
+        -1.46,
+        0.2
+      );
+      toesGroup.add(toe);
+    }
+    
+    legGroup.add(thigh, knee, calf, ankle, footBase, toesGroup);
     return legGroup;
   };
 
