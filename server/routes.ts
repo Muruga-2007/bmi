@@ -11,7 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userData = insertUserSchema.parse(req.body);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
+      const existingUser = await storage.getUserByEmail(userData.email as string);
       if (existingUser) {
         return res.status(400).json({ error: "User with this email already exists" });
       }
@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bmiRecord = await storage.createBmiRecord(recordData);
       
       // Get diet recommendations based on BMI category
-      const dietPlan = getDietRecommendations(recordData.category, recordData.activityLevel);
+      const dietPlan = getDietRecommendations(recordData.category as string, recordData.activityLevel as string);
       
       res.json({
         bmiRecord,

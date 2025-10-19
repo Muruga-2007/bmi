@@ -42,8 +42,8 @@ export const insertUserSchema = createInsertSchema(users, {
   age: z.number().min(1).max(120),
   gender: z.enum(["male", "female", "other"]),
 }).omit({
-  id: true,
-  createdAt: true,
+  id: true as any,
+  createdAt: true as any,
 });
 
 export const insertBmiRecordSchema = createInsertSchema(bmiRecords, {
@@ -52,8 +52,8 @@ export const insertBmiRecordSchema = createInsertSchema(bmiRecords, {
   bmi: z.string().or(z.number()),
   category: z.enum(["underweight", "normal", "overweight", "obese"]),
 }).omit({
-  id: true,
-  createdAt: true,
+  id: true as any,
+  createdAt: true as any,
 });
 
 // TypeScript types
