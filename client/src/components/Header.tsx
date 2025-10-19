@@ -11,6 +11,7 @@ export default function Header() {
     { path: "/", label: "Home" },
     { path: "/calculator", label: "Calculator" },
     { path: "/diet-plan", label: "Diet Plans" },
+    { path: "/progress", label: "Progress" },
     { path: "/insights", label: "Insights" },
     { path: "/about", label: "About" },
   ];
@@ -32,7 +33,7 @@ export default function Header() {
                 <Button
                   variant={location === item.path ? "secondary" : "ghost"}
                   size="sm"
-                  data-testid={`link-${item.label.toLowerCase()}`}
+                  data-testid={`link-${item.label.toLowerCase().replace(/ /g, '-')}`}
                 >
                   {item.label}
                 </Button>

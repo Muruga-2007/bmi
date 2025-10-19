@@ -149,79 +149,274 @@ function createHumanModel(category: string, height: number, weight: number): THR
   const group = new THREE.Group();
   
   const categoryMap = {
-    underweight: { bodyScale: 0.7, color: 0x87ceeb },
-    normal: { bodyScale: 1.0, color: 0x90ee90 },
-    overweight: { bodyScale: 1.3, color: 0xffa500 },
-    obese: { bodyScale: 1.6, color: 0xff6b6b }
+    underweight: { bodyScale: 0.75, muscleScale: 0.7, torsoWidth: 0.85, waistScale: 0.7, accentColor: 0x4facfe },
+    normal: { bodyScale: 1.0, muscleScale: 1.0, torsoWidth: 1.0, waistScale: 0.85, accentColor: 0x00f2c3 },
+    overweight: { bodyScale: 1.25, muscleScale: 1.15, torsoWidth: 1.3, waistScale: 1.25, accentColor: 0xffd93d },
+    obese: { bodyScale: 1.5, muscleScale: 1.35, torsoWidth: 1.6, waistScale: 1.6, accentColor: 0xff6b9d }
   };
   
   const config = categoryMap[category as keyof typeof categoryMap] || categoryMap.normal;
   
-  const skinMaterial = new THREE.MeshPhongMaterial({
-    color: config.color,
-    shininess: 30,
-    transparent: true,
-    opacity: 0.9
+  // Realistic skin tones based on category
+  const skinTone = 0xf4c2a5;
+  
+  const skinMaterial = new THREE.MeshStandardMaterial({
+    color: skinTone,
+    metalness: 0.1,
+    roughness: 0.8,
+    emissive: config.accentColor,
+    emissiveIntensity: 0.15
   });
 
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4, 32, 32),
-    skinMaterial
-  );
-  head.position.y = 2.2;
+  const highlightMaterial = new THREE.MeshStandardMaterial({
+    color: skinTone,
+    metalness: 0.2,
+    roughness: 0.7,
+    emissive: config.accentColor,
+    emissiveIntensity: 0.25
+  });
+
+  // Head with more realistic shape
+  const headGeometry = new THREE.SphereGeometry(0.35, 32, 32);
+  headGeometry.scale(1, 1.15, 0.95); // Make head slightly oval
+  const head = new THREE.Mesh(headGeometry, skinMaterial);
+  head.position.y = 2.3;
   group.add(head);
 
-  const torso = new THREE.Mesh(
+  // Facial features
+  const faceGroup = new THREE.Group();
+  faceGroup.position.copy(head.position);
+  
+  // Eyes
+  const eyeMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x2c3e50,
+    metalness: 0.9,
+    roughness: 0.1
+  });
+  const eyeGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  leftEye.position.set(-0.12, 0.08, 0.3);
+  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+  rightEye.position.set(0.12, 0.08, 0.3);
+  faceGroup.add(leftEye, rightEye);
+  
+  // Nose
+  const noseGeometry = new THREE.ConeGeometry(0.04, 0.12, 8);
+  const nose = new THREE.Mesh(noseGeometry, skinMaterial);
+  nose.position.set(0, -0.02, 0.32);
+  nose.rotation.x = Math.PI / 2;
+  faceGroup.add(nose);
+  
+  group.add(faceGroup);
+
+  // Neck
+  const neck = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.18, 0.25, 16),
+    skinMaterial
+  );
+  neck.position.y = 2.0;
+  group.add(neck);
+
+  // Upper chest (clavicle area)
+  const upperChest = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5 * config.torsoWidth, 0.2, 0.25),
+    highlightMaterial
+  );
+  upperChest.position.y = 1.75;
+  group.add(upperChest);
+
+  // Chest/Torso - more anatomical shape
+  const chestGeometry = new THREE.CylinderGeometry(
+    0.35 * config.torsoWidth,
+    0.4 * config.waistScale,
+    0.8,
+    32
+  );
+  const chest = new THREE.Mesh(chestGeometry, skinMaterial);
+  chest.position.y = 1.3;
+  chest.scale.z = 0.6;
+  group.add(chest);
+
+  // Pectoral/breast area detail
+  const pectoralLeft = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
+    highlightMaterial
+  );
+  pectoralLeft.position.set(-0.15 * config.torsoWidth, 1.5, 0.12);
+  pectoralLeft.scale.z = 0.6;
+  const pectoralRight = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15 * config.muscleScale, 16, 16),
+    highlightMaterial
+  );
+  pectoralRight.position.set(0.15 * config.torsoWidth, 1.5, 0.12);
+  pectoralRight.scale.z = 0.6;
+  group.add(pectoralLeft, pectoralRight);
+
+  // Abdomen with realistic curvature
+  const abdomenGeometry = new THREE.SphereGeometry(0.38 * config.waistScale, 32, 32);
+  const abdomen = new THREE.Mesh(abdomenGeometry, skinMaterial);
+  abdomen.scale.set(1, 0.7, 0.8);
+  abdomen.position.y = 0.75;
+  group.add(abdomen);
+
+  // Waist definition
+  const waist = new THREE.Mesh(
     new THREE.CylinderGeometry(
-      0.4 * config.bodyScale,
-      0.5 * config.bodyScale,
-      1.2,
+      0.32 * config.waistScale,
+      0.38 * config.waistScale,
+      0.35,
       32
     ),
     skinMaterial
   );
-  torso.position.y = 1.2;
-  group.add(torso);
+  waist.position.y = 0.5;
+  waist.scale.z = 0.7;
+  group.add(waist);
 
-  const abdomen = new THREE.Mesh(
-    new THREE.SphereGeometry(0.45 * config.bodyScale, 32, 32),
+  // Hips
+  const hips = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4 * config.bodyScale, 32, 16),
     skinMaterial
   );
-  abdomen.scale.y = 0.6;
-  abdomen.position.y = 0.6;
-  group.add(abdomen);
+  hips.scale.set(1, 0.5, 0.8);
+  hips.position.y = 0.2;
+  group.add(hips);
 
-  const createLimb = (width: number, length: number, posX: number, posY: number) => {
-    const limb = new THREE.Mesh(
-      new THREE.CylinderGeometry(width, width * 0.9, length, 16),
+  // Shoulders with more definition
+  const createShoulder = (posX: number) => {
+    const shoulder = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18 * config.muscleScale, 16, 16),
+      highlightMaterial
+    );
+    shoulder.position.set(posX, 1.65, 0);
+    return shoulder;
+  };
+  
+  const leftShoulder = createShoulder(-0.45 * config.torsoWidth);
+  const rightShoulder = createShoulder(0.45 * config.torsoWidth);
+  group.add(leftShoulder, rightShoulder);
+
+  // Arms with proper joints
+  const createArm = (posX: number) => {
+    const armGroup = new THREE.Group();
+    
+    // Upper arm
+    const upperArm = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11 * config.muscleScale, 0.09 * config.muscleScale, 0.55, 16),
       skinMaterial
     );
-    limb.position.set(posX, posY, 0);
-    return limb;
+    upperArm.position.set(posX, 1.35, 0);
+    
+    // Elbow joint
+    const elbow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.10 * config.muscleScale, 12, 12),
+      highlightMaterial
+    );
+    elbow.position.set(posX, 1.05, 0);
+    
+    // Forearm
+    const forearm = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09 * config.muscleScale, 0.07 * config.muscleScale, 0.5, 16),
+      skinMaterial
+    );
+    forearm.position.set(posX, 0.75, 0);
+    
+    // Hand
+    const hand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12 * config.muscleScale, 0.18, 0.08),
+      skinMaterial
+    );
+    hand.position.set(posX, 0.42, 0);
+    
+    armGroup.add(upperArm, elbow, forearm, hand);
+    return armGroup;
   };
 
-  const leftArm = createLimb(0.12 * config.bodyScale, 1.0, -0.55 * config.bodyScale, 1.2);
-  const rightArm = createLimb(0.12 * config.bodyScale, 1.0, 0.55 * config.bodyScale, 1.2);
-  group.add(leftArm, rightArm);
+  const leftArmGroup = createArm(-0.52 * config.torsoWidth);
+  const rightArmGroup = createArm(0.52 * config.torsoWidth);
+  group.add(leftArmGroup, rightArmGroup);
 
-  const leftLeg = createLimb(0.15 * config.bodyScale, 1.2, -0.25 * config.bodyScale, -0.2);
-  const rightLeg = createLimb(0.15 * config.bodyScale, 1.2, 0.25 * config.bodyScale, -0.2);
+  // Legs with proper anatomy
+  const createLeg = (posX: number) => {
+    const legGroup = new THREE.Group();
+    
+    // Thigh with muscle definition
+    const thigh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.14 * config.bodyScale, 0.12 * config.bodyScale, 0.7, 16),
+      skinMaterial
+    );
+    thigh.position.set(posX, -0.25, 0);
+    
+    // Knee
+    const knee = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12 * config.bodyScale, 12, 12),
+      highlightMaterial
+    );
+    knee.position.set(posX, -0.62, 0);
+    
+    // Calf with proper taper
+    const calf = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.11 * config.bodyScale, 0.08 * config.bodyScale, 0.65, 16),
+      skinMaterial
+    );
+    calf.position.set(posX, -1.0, 0);
+    
+    // Ankle
+    const ankle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07 * config.bodyScale, 0.07 * config.bodyScale, 0.1, 12),
+      skinMaterial
+    );
+    ankle.position.set(posX, -1.35, 0);
+    
+    // Foot
+    const foot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12 * config.bodyScale, 0.08, 0.25),
+      skinMaterial
+    );
+    foot.position.set(posX, -1.45, 0.08);
+    
+    legGroup.add(thigh, knee, calf, ankle, foot);
+    return legGroup;
+  };
+
+  const leftLeg = createLeg(-0.2 * config.bodyScale);
+  const rightLeg = createLeg(0.2 * config.bodyScale);
   group.add(leftLeg, rightLeg);
 
-  const glowGeometry = new THREE.SphereGeometry(0.42, 32, 32);
+  // Subtle glow effect based on health status
+  const glowGeometry = new THREE.SphereGeometry(0.5, 32, 32);
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: config.color,
+    color: config.accentColor,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.1,
     side: THREE.BackSide
   });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(head.position);
-  glow.scale.multiplyScalar(1.3);
-  group.add(glow);
+  const bodyGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+  bodyGlow.position.y = 1.0;
+  bodyGlow.scale.set(1.5 * config.bodyScale, 2.5, 1);
+  group.add(bodyGlow);
 
-  group.scale.set(0.8, 0.8, 0.8);
-  group.position.y = -1;
+  // Subtle particle effect at key points
+  const addGlowPoint = (x: number, y: number, z: number) => {
+    const pointGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.05, 8, 8),
+      new THREE.MeshBasicMaterial({
+        color: config.accentColor,
+        transparent: true,
+        opacity: 0.6
+      })
+    );
+    pointGlow.position.set(x, y, z);
+    group.add(pointGlow);
+  };
+
+  // Add glow points at joints
+  addGlowPoint(0, 2.3, 0); // Head
+  addGlowPoint(0, 1.3, 0); // Chest
+  addGlowPoint(0, 0.5, 0); // Abdomen
+
+  group.scale.set(0.75, 0.75, 0.75);
+  group.position.y = -0.5;
 
   return group;
 }

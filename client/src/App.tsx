@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import Calculator from "@/pages/Calculator";
 import DietPlan from "@/pages/DietPlan";
 import Insights from "@/pages/Insights";
+import Progress from "@/pages/Progress";
 import About from "@/pages/About";
 import NotFound from "@/pages/not-found";
 
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/calculator" component={Calculator} />
       <Route path="/diet-plan" component={DietPlan} />
       <Route path="/insights" component={Insights} />
+      <Route path="/progress" component={Progress} />
       <Route path="/about" component={About} />
       <Route component={NotFound} />
     </Switch>
