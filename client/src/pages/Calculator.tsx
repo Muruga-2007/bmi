@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import EnhancedBMICalculator from "@/components/EnhancedBMICalculator";
 import BMIResults from "@/components/BMIResults";
 import BMIChart from "@/components/BMIChart";
+import TDEEPanel from "@/components/TDEEPanel";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Utensils, ArrowRight } from "lucide-react";
@@ -16,9 +17,10 @@ type BMIData = {
 
 export default function Calculator() {
   const [results, setResults] = useState<BMIData | null>(null);
+  const [lastForm, setLastForm] = useState<any | null>(null);
   const [, setLocation] = useLocation();
 
-  const calculateBMI = (data: any) => {
+  const calculateBMI = async (data: any) => {
     const heightInMeters = data.height / 100;
     const bmi = data.weight / (heightInMeters * heightInMeters);
     
@@ -59,12 +61,55 @@ export default function Calculator() {
       ];
     }
 
-    setResults({
-      bmi,
-      category,
-      idealRange: "18.5 - 24.9",
-      aiTips,
-    });
+    // Save latest inputs for sharing
+    setLastForm(data);
+
+    // Fetch AI advice from server (Gemini 2.5 Flash)
+    try {
+      const res = await fetch("/api/ai/diet-advice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bmi: Number(bmi.toFixed(1)),
+          category,
+          age: Number(data.age),
+          gender: data.gender,
+          activityLevel: data.activityLevel,
+        }),
+      });
+      const json = await res.json();
+      if (json?.text) {
+        // Split into bullets; fallback to existing tips
+        const bullets = String(json.text)
+          .split(/\n|\r/)
+          .map((s: string) => s.replace(/^[-*•\d\.\s]+/, "").trim())
+          .filter((s: string) => s.length > 0)
+          .slice(0, 6);
+        aiTips = bullets.length ? bullets : aiTips;
+      }
+    } catch (_) {
+      // ignore AI failures, keep heuristic tips
+    }
+
+    setResults({ bmi, category, idealRange: "18.5 - 24.9", aiTips });
+  };
+
+  const copyLink = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (lastForm) {
+        Object.entries(lastForm).forEach(([k, v]) => params.set(k, String(v)));
+      }
+      if (results) {
+        params.set("bmi", results.bmi.toFixed(1));
+        params.set("category", results.category);
+      }
+      const url = `${window.location.origin}/calculator?${params.toString()}`;
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard");
+    } catch (_) {
+      /* noop */
+    }
   };
 
   return (
@@ -75,28 +120,33 @@ export default function Calculator() {
         className="mb-12 text-center"
       >
         <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-          BMI Calculator with 3D Visualization
+          BMI Calculator & Smart Insights
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Experience real-time body analysis with interactive 3D model and personalized health insights
+          Calculate BMI with instant guidance, AI-backed tips, and shareable results
         </p>
       </motion.div>
 
       <div className="space-y-8">
-        <EnhancedBMICalculator onCalculate={calculateBMI} />
-        
-        {results && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
-          >
+        {/* Calculator + Results side-by-side on large screens */}
+        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-8 items-start">
+          <EnhancedBMICalculator onCalculate={calculateBMI} />
+          {results && (
             <BMIResults
               bmi={results.bmi}
               category={results.category}
               idealRange={results.idealRange}
               aiTips={results.aiTips}
             />
+          )}
+        </div>
+
+        {results && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+          >
             <BMIChart userBMI={results.bmi} />
             
             <div className="flex justify-center">
@@ -110,7 +160,18 @@ export default function Calculator() {
                 View Detailed Diet Plans
                 <ArrowRight className="h-5 w-5" />
               </Button>
+              <Button onClick={copyLink} variant="outline" className="ml-3" data-testid="button-copy-link">
+                Copy Link
+              </Button>
             </div>
+            <TDEEPanel
+              age={Number(lastForm?.age) || 30}
+              gender={String(lastForm?.gender) || "male"}
+              heightCm={Number(lastForm?.height) || 170}
+              weightKg={Number(lastForm?.weight) || 70}
+              activityLevel={(lastForm?.activityLevel as any) || "moderate"}
+              goal={results.category === "overweight" || results.category === "obese" ? "lose" : results.category === "underweight" ? "gain" : "maintain"}
+            />
           </motion.div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertBmiRecordSchema } from "@shared/schema";
 import { z } from "zod";
+import { generateDietAdvice } from "./gemini";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User registration endpoint
@@ -68,6 +69,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(history);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch BMI history" });
+    }
+  });
+
+  // AI: Gemini diet advice
+  app.post("/api/ai/diet-advice", async (req, res) => {
+    try {
+      const { bmi, category, age, gender, activityLevel } = req.body ?? {};
+      if (typeof bmi !== "number" || !category) {
+        return res.status(400).json({ error: "bmi (number) and category are required" });
+      }
+      const text = await generateDietAdvice({ bmi, category, age, gender, activityLevel });
+      res.json({ text });
+    } catch (_err) {
+      res.status(500).json({ error: "Failed to get AI advice" });
     }
   });
 

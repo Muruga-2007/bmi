@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Calculator, User, Activity, Ruler, Weight } from "lucide-react";
 import { motion } from "framer-motion";
-import HumanModel3D from "./HumanModel3D";
 
 type BMIFormData = {
   gender: string;
@@ -33,6 +32,7 @@ export default function EnhancedBMICalculator({ onCalculate }: EnhancedBMICalcul
   });
 
   const [previewBMI, setPreviewBMI] = useState<"underweight" | "normal" | "overweight" | "obese">("normal");
+  const [whatIfWeight, setWhatIfWeight] = useState<number | null>(null);
 
   const calculatePreviewBMI = (height: number, weight: number) => {
     const heightInMeters = height / 100;
@@ -60,7 +60,7 @@ export default function EnhancedBMICalculator({ onCalculate }: EnhancedBMICalcul
   };
 
   return (
-    <div className="grid lg:grid-cols-2 gap-8 items-start">
+    <div className="w-full">
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -211,6 +211,24 @@ export default function EnhancedBMICalculator({ onCalculate }: EnhancedBMICalcul
                 </Select>
               </div>
 
+              {/* What-if preview (does not change form state) */}
+              <div className="space-y-3 p-4 rounded-xl border bg-background/50">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">What‑if weight</Label>
+                  <div className="text-sm text-muted-foreground">{(whatIfWeight ?? formData.weight)} kg</div>
+                </div>
+                <Slider
+                  value={[whatIfWeight ?? formData.weight]}
+                  onValueChange={([value]) => setWhatIfWeight(value)}
+                  min={30}
+                  max={200}
+                  step={1}
+                />
+                <div className="text-xs text-muted-foreground">
+                  Preview BMI: {((whatIfWeight ?? formData.weight) / Math.pow(formData.height / 100, 2)).toFixed(1)} (drag to simulate)
+                </div>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full font-heading text-lg h-12 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" 
@@ -224,32 +242,6 @@ export default function EnhancedBMICalculator({ onCalculate }: EnhancedBMICalcul
         </Card>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="lg:sticky lg:top-8"
-      >
-        <Card className="overflow-hidden backdrop-blur-sm bg-card/50 border-2">
-          <div className="aspect-square relative">
-            <HumanModel3D 
-              bmiCategory={previewBMI}
-              height={formData.height}
-              weight={formData.weight}
-              gender={formData.gender as 'male' | 'female' | 'other'}
-              activityLevel={formData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | 'very-active'}
-            />
-          </div>
-          <CardContent className="p-4 bg-gradient-to-t from-background to-transparent">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Live Preview</p>
-              <p className="text-lg font-semibold capitalize" data-testid="text-preview-category">
-                {previewBMI}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 }
