@@ -1,0 +1,76 @@
+You are a senior backend engineer and security architect.
+
+Context:
+This project implements a password reset flow using 6-digit email verification codes (SMTP).
+The current implementation has multiple problems across:
+- Security
+- Logic correctness
+- Edge cases
+- Database design
+- API behavior
+- Frontend UX consistency
+- Production readiness
+
+Your task is NOT to rewrite blindly.
+
+Step 1: Deep Audit
+Perform a full audit of the password reset implementation and documentation.
+Identify ALL problems, including but not limited to:
+- Security vulnerabilities (OWASP-level issues)
+- Race conditions
+- Token/code weaknesses
+- Rate limiting flaws
+- Email enumeration leaks
+- Replay attacks
+- Timing attacks
+- Poor error handling
+- Missing cleanup jobs
+- Weak password handling
+- Broken edge cases
+- Frontend UX failure cases
+- Incomplete or misleading documentation
+
+Step 2: Categorize Issues
+For each issue:
+- Give it a severity (Critical / High / Medium / Low)
+- Explain why it is a problem in production
+- Describe how it can be exploited or fail
+
+Step 3: Design the Correct Solution
+Propose a production-grade design:
+- Decide whether 6-digit codes are acceptable or should be replaced with signed tokens
+- Recommend hashing reset codes in DB (never store plaintext)
+- Add retry limits and attempt counters
+- Add background cleanup of expired codes
+- Add device/IP-based rate limiting
+- Define safe API responses
+- Define secure password update flow
+- Define audit logging strategy
+
+Step 4: Implement Fixes
+Refactor the system:
+- Backend models
+- API endpoints
+- Email service
+- Password validation
+- Frontend flows
+
+Use:
+- Clean architecture
+- Clear naming
+- Defensive programming
+- Comments explaining security decisions
+
+Step 5: Improve Documentation
+Rewrite PASSWORD_RESET_IMPLEMENTATION.md so that:
+- It reflects the corrected design
+- No false security claims remain
+- Security guarantees are precise
+- Flow is clear for new engineers
+
+Rules:
+- Be brutally honest
+- Do NOT preserve broken design decisions
+- Prefer correctness over simplicity
+- Assume this will be reviewed by security engineers
+- Output must be production-ready
